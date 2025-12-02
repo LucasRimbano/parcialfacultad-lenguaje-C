@@ -1,240 +1,440 @@
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-struct pizza {
-int id_pizza;
-char nombre[50];
-float costo;
-float precio;
-int cantidad_vendida;
+struct farmaco {
+    int codigo_producto;
+    char nombre[50];
+    float precio;
+    int cantidad_disponible;
+    int cantidad_vendida;
 };
 
-struct pizza *ingresar_datos(struct pizza *inventario, int *tamanio) {
+/* ------------------- HELPERS DE ENTRADA ------------------- */
+
+void limpiar_buffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {
+        /* descartar */
+    }
+}
+
+void leer_linea(char *buffer, int tamanio) {
+    if (fgets(buffer, tamanio, stdin) != NULL) {
+        buffer[strcspn(buffer, "\n")] = '\0';  // eliminar '\n'
+    }
+}
+
+/* ------------------- 1. INGRESAR PRODUCTOS ------------------- */
+
+struct farmaco *ingresar_farmacos(struct farmaco *inventario, int *tamanio) {
     int opcion = 0;
+
     do {
-        struct pizza *temp = realloc(inventario, (*tamanio + 1) * sizeof(struct pizza));
+        struct farmaco *temp = realloc(inventario, (*tamanio + 1) * sizeof(struct farmaco));
         if (temp == NULL) {
             printf("No se pudo asignar memoria...\n");
-            return inventario;
+            return inventario;  // devolvemos el puntero anterior
         }
         inventario = temp;
 
-        printf("Pedido numero: %d \n", *tamanio + 1);
-        printf("Ingrese el ID de la pizza: \n");
-        scanf("%d", &inventario[*tamanio].id_pizza);
-        getchar();
+        struct farmaco *nuevo = &inventario[*tamanio];
 
-        printf("Ingrese su nombre: \n");
-        fgets(inventario[*tamanio].nombre, sizeof(inventario[*tamanio].nombre), stdin);
-        inventario[*tamanio].nombre[strcspn(inventario[*tamanio].nombre, "\n")] = '\0';
-        printf("Ingrese el costo de la pizza: \n");
-        scanf("%f", &inventario[*tamanio].costo);
-        getchar();
+        printf("\n=== Alta de farmaco #%d ===\n", *tamanio + 1);
 
-        printf("Ingrese el precio de la pizza: \n");
-        scanf("%f", &inventario[*tamanio].precio);
-        getchar();
-        printf("Ingrese la cantidad vendida: \n");
-        scanf("%d" , &inventario[*tamanio].cantidad_vendida);
+        printf("Codigo de producto: ");
+        scanf("%d", &nuevo->codigo_producto);
+        limpiar_buffer();
+
+        printf("Nombre del farmaco: ");
+        leer_linea(nuevo->nombre, sizeof(nuevo->nombre));
+
+        printf("Precio: ");
+        scanf("%f", &nuevo->precio);
+        limpiar_buffer();
+
+        printf("Cantidad disponible: ");
+        scanf("%d", &nuevo->cantidad_disponible);
+        limpiar_buffer();
+
+        nuevo->cantidad_vendida = 0;  // al inicio, nada vendido
 
         (*tamanio)++;
 
-        printf("Si quiere seguir ingresando pizzas ingrese cualquier n�mero menos el 9.\n");
-        printf("Si quiere terminar de ingresar pizzas ingrese el 9.\n");
+        printf("\nSi quiere seguir ingresando farmacos ingrese cualquier numero menos 9.\n");
+        printf("Si quiere terminar de ingresar farmacos ingrese 9.\n");
+        printf("Opcion: ");
         scanf("%d", &opcion);
+        limpiar_buffer();
 
     } while (opcion != 9);
+
     return inventario;
 }
 
+/* ------------------- 2. IMPRIMIR INVENTARIO ------------------- */
 
-void Imprimir_valores(struct pizza *inventario , int tamanio){
-
-
-for (int i = 0 ; i < tamanio ; i++){
-
-    printf("Pizza numero: %d \n" , i +1);
-    printf("Su id es: %d \n", inventario[i].id_pizza);
-    printf("Su nombre es: %s ",  inventario[i].nombre);
-    printf("El costo x pizza es: %0.2f \n" , inventario[i].costo);
-    printf("El precio x pizza es: %0.2f \n", inventario[i].precio);
-    printf("La cantidad vendida es: %d \n" ,inventario[i].cantidad_vendida);
-
-}
-
-
-}
-void actualizar_precio(struct pizza *inventario, int tamanio) {
-    int id_a_buscar;
-    int porcentaje_incremento;
-
-    printf("Ingrese el ID de la pizza a actualizar:\n");
-    scanf("%d", &id_a_buscar);
-    getchar();
-
-    printf("Ingrese el porcentaje  (entre 1 y 100):\n");
-    scanf("%d", &porcentaje_incremento);
-    getchar();
-
-    if (porcentaje_incremento < 1 || porcentaje_incremento > 100) {
-        printf("Error: Ingresa un porcentaje que este bien entre 1 y 100.\n");
+void imprimir_farmacos(struct farmaco *inventario, int tamanio) {
+    if (tamanio == 0) {
+        printf("\nNo hay farmacos cargados.\n");
         return;
     }
 
+    printf("\n=== Inventario de farmacos ===\n");
+    for (int i = 0; i < tamanio; i++) {
+        printf("\nFarmaco #%d (posicion %d)\n", i + 1, i);
+        printf("Codigo: %d\n", inventario[i].codigo_producto);
+        printf("Nombre: %s\n", inventario[i].nombre);
+        printf("Precio: $%.2f\n", inventario[i].precio);
+        printf("Cantidad disponible: %d\n", inventario[i].cantidad_disponible);
+        printf("Cantidad vendida: %d\n", inventario[i].cantidad_vendida);
+    }
+    printf("\n");
+}
+
+/* ------------------- 3. MODIFICAR POR NOMBRE ------------------- */
+
+void modificar_farmaco_por_nombre(struct farmaco *inventario, int tamanio) {
+    if (tamanio == 0) {
+        printf("No hay farmacos para modificar.\n");
+        return;
+    }
+
+    char nombre_buscar[50];
+    printf("Ingrese el nombre del farmaco a modificar: ");
+    leer_linea(nombre_buscar, sizeof(nombre_buscar));
+
     int encontrado = 0;
     for (int i = 0; i < tamanio; i++) {
-        if (inventario[i].id_pizza == id_a_buscar) {
-            inventario[i].precio *= (1 + porcentaje_incremento / 100.0);
-            printf("Precio actualizado con ID %d: %0.2f\n", id_a_buscar, inventario[i].precio);
+        if (strcmp(inventario[i].nombre, nombre_buscar) == 0) {
+            printf("\nFarmaco encontrado:\n");
+            printf("Codigo actual: %d\n", inventario[i].codigo_producto);
+            printf("Nombre: %s\n", inventario[i].nombre);
+            printf("Precio: %.2f\n", inventario[i].precio);
+            printf("Cantidad disponible: %d\n", inventario[i].cantidad_disponible);
+            printf("Cantidad vendida: %d\n", inventario[i].cantidad_vendida);
+
+            printf("\nIngrese nuevos datos (deje igual si desea repetir el valor actual):\n");
+
+            printf("Nuevo precio (actual %.2f): ", inventario[i].precio);
+            scanf("%f", &inventario[i].precio);
+            limpiar_buffer();
+
+            printf("Nueva cantidad disponible (actual %d): ", inventario[i].cantidad_disponible);
+            scanf("%d", &inventario[i].cantidad_disponible);
+            limpiar_buffer();
+
+            printf("Nueva cantidad vendida (actual %d): ", inventario[i].cantidad_vendida);
+            scanf("%d", &inventario[i].cantidad_vendida);
+            limpiar_buffer();
+
+            printf("Farmaco modificado correctamente.\n");
             encontrado = 1;
             break;
         }
     }
 
     if (!encontrado) {
-        printf("Error: No se encontro una pizza con el id que estaba buscando... %d.\n", id_a_buscar);
+        printf("No se encontro ningun farmaco con el nombre '%s'.\n", nombre_buscar);
     }
 }
 
+/* ------------------- 4. REGISTRAR VENTA ------------------- */
 
-float calcular_promedio_ventas(struct pizza *inventario, int tamanio) {
-    if (tamanio == 0) return 0; // Evitar divisi�n por cero
-    int suma_ventas = 0;
+void vender_farmaco(struct farmaco *inventario, int tamanio) {
+    if (tamanio == 0) {
+        printf("No hay farmacos cargados para vender.\n");
+        return;
+    }
+
+    int codigo, cantidad;
+    printf("Ingrese el codigo del farmaco a vender: ");
+    scanf("%d", &codigo);
+    limpiar_buffer();
+
+    printf("Ingrese la cantidad a vender: ");
+    scanf("%d", &cantidad);
+    limpiar_buffer();
+
+    if (cantidad <= 0) {
+        printf("Cantidad invalida.\n");
+        return;
+    }
+
+    int encontrado = 0;
     for (int i = 0; i < tamanio; i++) {
-        suma_ventas += inventario[i].cantidad_vendida;
-    }
-    return (float)suma_ventas / tamanio;
-}
+        if (inventario[i].codigo_producto == codigo) {
+            encontrado = 1;
+            if (inventario[i].cantidad_disponible < cantidad) {
+                printf("No hay stock suficiente. Disponible: %d\n",
+                       inventario[i].cantidad_disponible);
+                return;
+            }
 
+            inventario[i].cantidad_disponible -= cantidad;
+            inventario[i].cantidad_vendida += cantidad;
+            float total_venta = inventario[i].precio * cantidad;
 
-
-void eliminar_pizza(struct pizza **inventario , int *tamanio){
-
-    Imprimir_valores(*inventario,*tamanio);
-    int indice_a_eliminar = 0 ;
-    printf("Ingrese en numero de pizza que quiere eliminar de la lista... \n");
-    scanf("%d" , &indice_a_eliminar);
-    indice_a_eliminar--;
-
-    for (int i = indice_a_eliminar ; i < *tamanio  - 1; i ++){
-             (*inventario)[i] = (*inventario)[i+1];
-
-
-    }
-    (*tamanio)--;
-
-    struct pizza *temp = realloc(*inventario, (*tamanio) * sizeof(struct pizza));
-    if (temp != NULL) {
-        *inventario = temp;
-    } else {
-        printf("no se puede asignar memoria... \n");
-    }
-    Imprimir_valores(*inventario, *tamanio);
-}
-
-
-void archivos_binario(struct pizza *inventario ,  int tamanio){
-
-    FILE *ARCHIVO_BIN;
-    ARCHIVO_BIN = fopen("pizzas.dat", "wr");
-    if (ARCHIVO_BIN == NULL) {
-    printf("Hubo un error de carga de memoria lo siento.... \n");
-    return;
-    }
-
-
-
-
-    fwrite(inventario, sizeof(struct pizza),tamanio,ARCHIVO_BIN);
-    fclose(ARCHIVO_BIN);
-    printf("Archivos  binario guardado correctamente... \n");
-}
-
-
-void archivo_texto (struct pizza *inventario , int tamanio){
-
-FILE *texto ;
-texto = fopen("reporte.txt", "w");
-if (texto == NULL) {
-    printf("Lo siento errror de la memoria ... \n");
-    return;
-
-
-}
- fprintf(texto,"productos estrellas: \n");
-
- for (int i = 0; i < tamanio; i++) {
-        if (inventario[i].cantidad_vendida> 50) {
-
-
-        fprintf(texto,"Numero de pizza: %d \n" ,  i +1);
-        fprintf(texto ,"ID NUMERO: %d \n", inventario[i].id_pizza);
-        fprintf(texto,"Su nombre es: %s \n" , inventario[i].nombre);
-        fprintf(texto,"El costo es de: %0.2f \n",inventario[i].costo);
-        fprintf(texto,"El precio es de: %0.2f \n", inventario[i].precio);
-        fprintf(texto,"La cantidad vendida es de: %d \n" , inventario[i].cantidad_vendida);
-        fprintf(texto, "------------------------- \n");
+            printf("Venta realizada correctamente.\n");
+            printf("Producto: %s\n", inventario[i].nombre);
+            printf("Cantidad vendida: %d\n", cantidad);
+            printf("Total a pagar: $%.2f\n", total_venta);
+            return;
         }
     }
 
-
-
-
-fclose(texto);
-printf("se han cargado los productos estrellas en archivo de txt...\n");
+    if (!encontrado) {
+        printf("No se encontro un farmaco con el codigo %d.\n", codigo);
+    }
 }
 
-int main (){
-struct pizza *inventario = NULL;
-int tamanio = 0 ;
- int opcion_menu = 0;
+/* ------------------- 5. TOTAL RECAUDADO ------------------- */
 
+float total_recaudado(struct farmaco *inventario, int tamanio) {
+    float total = 0.0f;
+    for (int i = 0; i < tamanio; i++) {
+        total += inventario[i].precio * inventario[i].cantidad_vendida;
+    }
+    return total;
+}
 
- do {
-        printf("Ingrese un numero segun lo que quieras elejir... \n");
-        printf("1. Ingresar datos. \n");
-        printf("2. Imprimir datos. \n");
-        printf("3. Actualizar precio \n");
-        printf("4. Total ingresos  total promedio ventas etc... \n");
-        printf("5. Eliminar un elemento. \n");
-        printf("6. Imprimir pizzas en archivo texto \n");
-        printf("7. Guardar elementos en binario. \n");
-        printf("9. Salir del programa... \n");
-        printf("Ingrese un numero segun lo que quiera.... \n");
-        scanf("%d" , &opcion_menu);
-        getchar();
-       switch(opcion_menu){
-         case 1 :
-          inventario = ingresar_datos(inventario,&tamanio);
-          break;
-         case 2:
-          Imprimir_valores(inventario,tamanio);
-          break;
-         case 3:
-            actualizar_precio(inventario,tamanio);
-            break;
-//         case 4:
-//            float promedio_ventas = calcular_promedio_ventas(inventario, tamanio);
-            break;
-         case 5:
-          eliminar_pizza(&inventario,&tamanio);
-          break;
-         case 6:
-            archivo_texto(inventario,tamanio);
-            break;
-         case 7:
-             archivos_binario(inventario,tamanio);
-            break;
-         case 9:
-          printf("SALIENDO DEL PROGRAMA....\n");
-           break;
-       }
+/* ------------------- 6. ELIMINAR FARMACO ------------------- */
 
+void eliminar_farmaco(struct farmaco **inventario, int *tamanio) {
+    if (*tamanio == 0) {
+        printf("No hay farmacos para eliminar.\n");
+        return;
+    }
 
+    imprimir_farmacos(*inventario, *tamanio);
 
- }while(opcion_menu != 9 );
+    int indice_a_eliminar;
+    printf("Ingrese el numero de farmaco (1..%d) que desea eliminar: ", *tamanio);
+    scanf("%d", &indice_a_eliminar);
+    limpiar_buffer();
 
-free(inventario);
-return 0;
+    if (indice_a_eliminar < 1 || indice_a_eliminar > *tamanio) {
+        printf("Indice invalido.\n");
+        return;
+    }
+
+    indice_a_eliminar--;  // lo convertimos a indice del vector (0..tamanio-1)
+
+    for (int i = indice_a_eliminar; i < *tamanio - 1; i++) {
+        (*inventario)[i] = (*inventario)[i + 1];
+    }
+
+    (*tamanio)--;
+
+    if (*tamanio == 0) {
+        free(*inventario);
+        *inventario = NULL;
+        printf("Se elimino el ultimo farmaco. Inventario vacio.\n");
+        return;
+    }
+
+    struct farmaco *temp = realloc(*inventario, (*tamanio) * sizeof(struct farmaco));
+    if (temp != NULL) {
+        *inventario = temp;
+    } else {
+        printf("Advertencia: No se pudo ajustar la memoria, pero el registro fue eliminado.\n");
+    }
+
+    printf("Farmaco eliminado correctamente.\n");
+}
+
+/* ------------------- 7. FARMACO MAS VENDIDO ------------------- */
+
+void farmaco_mas_vendido(struct farmaco *inventario, int tamanio) {
+    if (tamanio == 0) {
+        printf("No hay farmacos cargados.\n");
+        return;
+    }
+
+    int indice_max = 0;
+    for (int i = 1; i < tamanio; i++) {
+        if (inventario[i].cantidad_vendida > inventario[indice_max].cantidad_vendida) {
+            indice_max = i;
+        }
+    }
+
+    printf("\nFarmaco mas vendido:\n");
+    printf("Codigo: %d\n", inventario[indice_max].codigo_producto);
+    printf("Nombre: %s\n", inventario[indice_max].nombre);
+    printf("Cantidad vendida: %d\n", inventario[indice_max].cantidad_vendida);
+    printf("Precio: $%.2f\n\n", inventario[indice_max].precio);
+}
+
+/* ------------------- 8. TXT PARA PEDIDOS (stock < 5) ------------------- */
+
+void generar_pedido_distribuidora(struct farmaco *inventario, int tamanio) {
+    FILE *texto = fopen("farmacos.txt", "w");
+    if (texto == NULL) {
+        printf("Error al abrir farmacos.txt para escritura.\n");
+        return;
+    }
+
+    fprintf(texto, "Farmacos con stock menor a 5 (pedido a distribuidora):\n\n");
+
+    int alguno = 0;
+    for (int i = 0; i < tamanio; i++) {
+        if (inventario[i].cantidad_disponible < 5) {
+            alguno = 1;
+            fprintf(texto, "Posicion en vector: %d\n", i);
+            fprintf(texto, "Codigo: %d\n", inventario[i].codigo_producto);
+            fprintf(texto, "Nombre: %s\n", inventario[i].nombre);
+            fprintf(texto, "Precio: %.2f\n", inventario[i].precio);
+            fprintf(texto, "Disponible: %d\n", inventario[i].cantidad_disponible);
+            fprintf(texto, "Vendida: %d\n", inventario[i].cantidad_vendida);
+            fprintf(texto, "------------------------\n");
+        }
+    }
+
+    fclose(texto);
+
+    if (alguno) {
+        printf("Se genero el archivo farmacos.txt con el pedido.\n");
+    } else {
+        printf("No hay farmacos con stock menor a 5. farmacos.txt se genero vacio.\n");
+    }
+}
+
+/* ------------------- 9. GUARDAR EN BINARIO ------------------- */
+
+void guardar_en_binario(struct farmaco *inventario, int tamanio) {
+    FILE *archivo = fopen("farmacos.dat", "wb");
+    if (archivo == NULL) {
+        printf("Error al abrir farmacos.dat para escritura.\n");
+        return;
+    }
+
+    size_t escritos = fwrite(inventario, sizeof(struct farmaco), tamanio, archivo);
+    fclose(archivo);
+
+    if (escritos == (size_t)tamanio) {
+        printf("Inventario guardado correctamente en farmacos.dat\n");
+    } else {
+        printf("Hubo un error al escribir en farmacos.dat\n");
+    }
+}
+
+/* ------------------- 10. CARGAR DESDE BINARIO ------------------- */
+
+struct farmaco *cargar_desde_binario(struct farmaco *inventario, int *tamanio) {
+    FILE *archivo = fopen("farmacos.dat", "rb");
+    if (archivo == NULL) {
+        printf("No se pudo abrir farmacos.dat. Quizas no exista aun.\n");
+        return inventario;
+    }
+
+    fseek(archivo, 0, SEEK_END);
+    long bytes = ftell(archivo);
+    if (bytes < 0) {
+        printf("Error al obtener el tamano del archivo.\n");
+        fclose(archivo);
+        return inventario;
+    }
+    rewind(archivo);
+
+    int cantidad = (int)(bytes / sizeof(struct farmaco));
+    if (cantidad == 0) {
+        printf("El archivo farmacos.dat esta vacio.\n");
+        fclose(archivo);
+        return inventario;
+    }
+
+    struct farmaco *nuevo = malloc(cantidad * sizeof(struct farmaco));
+    if (nuevo == NULL) {
+        printf("No se pudo asignar memoria para cargar los datos.\n");
+        fclose(archivo);
+        return inventario;
+    }
+
+    size_t leidos = fread(nuevo, sizeof(struct farmaco), cantidad, archivo);
+    fclose(archivo);
+
+    if (leidos != (size_t)cantidad) {
+        printf("Error al leer los datos desde farmacos.dat\n");
+        free(nuevo);
+        return inventario;
+    }
+
+    // Liberamos el inventario anterior y reemplazamos
+    free(inventario);
+    inventario = nuevo;
+    *tamanio = cantidad;
+
+    printf("Se cargaron %d farmacos desde farmacos.dat\n", *tamanio);
+    return inventario;
+}
+
+/* ------------------- PROGRAMA PRINCIPAL ------------------- */
+
+int main() {
+    struct farmaco *inventario = NULL;
+    int tamanio = 0;
+    int opcion_menu = 0;
+
+    do {
+        printf("\n=========== MENU FARMACIA ===========\n");
+        printf("1. Ingresar farmacos\n");
+        printf("2. Imprimir inventario\n");
+        printf("3. Modificar farmaco por nombre\n");
+        printf("4. Registrar venta\n");
+        printf("5. Mostrar total recaudado\n");
+        printf("6. Eliminar un farmaco\n");
+        printf("7. Mostrar farmaco mas vendido\n");
+        printf("8. Generar archivo farmacos.txt (stock < 5)\n");
+        printf("9. Guardar inventario en binario (farmacos.dat)\n");
+        printf("10. Cargar inventario desde binario (farmacos.dat)\n");
+        printf("0. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion_menu);
+        limpiar_buffer();
+
+        switch (opcion_menu) {
+            case 1:
+                inventario = ingresar_farmacos(inventario, &tamanio);
+                break;
+            case 2:
+                imprimir_farmacos(inventario, tamanio);
+                break;
+            case 3:
+                modificar_farmaco_por_nombre(inventario, tamanio);
+                break;
+            case 4:
+                vender_farmaco(inventario, tamanio);
+                break;
+            case 5: {
+                float total = total_recaudado(inventario, tamanio);
+                printf("Total recaudado en ventas: $%.2f\n", total);
+                break;
+            }
+            case 6:
+                eliminar_farmaco(&inventario, &tamanio);
+                break;
+            case 7:
+                farmaco_mas_vendido(inventario, tamanio);
+                break;
+            case 8:
+                generar_pedido_distribuidora(inventario, tamanio);
+                break;
+            case 9:
+                guardar_en_binario(inventario, tamanio);
+                break;
+            case 10:
+                inventario = cargar_desde_binario(inventario, &tamanio);
+                break;
+            case 0:
+                printf("Saliendo del programa...\n");
+                break;
+            default:
+                printf("Opcion invalida.\n");
+                break;
+        }
+
+    } while (opcion_menu != 0);
+
+    free(inventario);
+    return 0;
 }
